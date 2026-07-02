@@ -524,6 +524,7 @@ table.pr-tbl{width:100%;border-collapse:collapse;font-size:11.5px;}
         <div class="hk"><b id="hk-rdv">0</b><span>RDV auj.</span></div>
       </div>
     </div>
+    <div id="home-etudes" style="display:none;"></div>
     <div class="home-grid">
       <div class="home-blk">
         <div class="home-sec"><h4><svg class="hsi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> Aujourd'hui</h4><button onclick="showTab('t4')">Tout voir ›</button></div>
@@ -571,6 +572,26 @@ table.pr-tbl{width:100%;border-collapse:collapse;font-size:11.5px;}
         <div class="fg" id="fg-referent"><label class="fl" id="label-referent">Référent</label><input class="fi" type="text" id="f-ref" placeholder="Référent"></div>
         <div class="fg"><label class="fl" id="label-objet">Objet / Motif</label><textarea class="ft" id="f-objet" placeholder="Décrivez..."></textarea></div>
         <div class="fg"><label class="fl" id="label-objectif">Objectifs</label><textarea class="ft" id="f-obj" placeholder="Objectifs..."></textarea></div>
+        <!-- 🎓 MODULE UNIVERSITAIRE (visible uniquement en profil Étudiant) -->
+        <div id="fg-etudes" style="display:none;grid-column:1/-1;">
+          <div class="grid2">
+            <div class="fg"><label class="fl">Crédits ECTS</label><input class="fi" type="number" id="f-ects" min="0" max="30" placeholder="ex : 6"></div>
+            <div class="fg"><label class="fl">Date d'examen</label><input class="fi" type="date" id="f-exam"></div>
+          </div>
+          <div class="card" style="margin:4px 0 10px;background:var(--bg);">
+            <div class="card-head" style="margin-bottom:8px;padding-bottom:8px;"><div class="card-ico ic-gold">🎓</div><div><div class="card-ttl">Notes & moyenne</div><div class="card-sub" id="grades-avg">Aucune note</div></div></div>
+            <div id="grades-list"></div>
+            <div class="grid2" style="margin-top:8px;grid-template-columns:2fr 1fr 1fr;gap:6px;">
+              <input class="fi" type="text" id="g-label" placeholder="Contrôle, TP, partiel…">
+              <input class="fi" type="number" id="g-note" min="0" max="20" step="0.25" placeholder="/20">
+              <input class="fi" type="number" id="g-coef" min="0.5" step="0.5" value="1" placeholder="coef">
+            </div>
+            <div class="btn-row" style="margin-top:8px;">
+              <button class="btn btn-teal" type="button" onclick="addGrade()">+ Ajouter la note</button>
+              <button class="btn btn-outline" type="button" onclick="planRevisions()">📅 Planifier révisions</button>
+            </div>
+          </div>
+        </div>
         <div class="fg"><label class="fl">Notes</label><textarea class="ft" id="f-notes" placeholder="Notes..."></textarea></div>
         <div class="fg" style="margin-top:4px;">
           <label class="fl" style="margin-bottom:8px;">Statut</label>
@@ -1419,9 +1440,7 @@ function urlBase64ToUint8Array(base64String){
 }
 
 /* Enregistre le service worker (fichier muzuri-sw.js à côté du HTML — contenu ci-dessous en commentaire) */
-/* Auto-enregistrement au démarrage (PWA installable + cache hors-ligne) */
 window.addEventListener("load",()=>{ registerSW(); });
-/* Raccourcis d'icône (appui long sur l'icône installée) */
 window.addEventListener("DOMContentLoaded",()=>{
   const act=new URLSearchParams(location.search).get("action");
   if(!act)return;
@@ -1557,6 +1576,7 @@ function applyMetier(key){
   /* 3. Topbar icône */
   const ico=$("topbar-icon");if(ico)ico.textContent=m.emoji;
   /* 4. Nav onglets */
+  const fge=$("fg-etudes");if(fge)fge.style.display=(currentMetier==="etudiant")?"block":"none";
   const bfi=$("bn-fiches-ico");if(bfi)bfi.textContent=m.navIco1;
   const bfl=$("bn-fiches-lbl");if(bfl)bfl.textContent=m.t1.split(" ")[0];
   const qfl=$("qa-fiche-lbl");if(qfl)qfl.textContent=m.btnNew.replace(/^[+➕]\s*/,"");
@@ -1724,6 +1744,22 @@ function renderHome(){
     d.onclick=()=>showTab("t3");return d;
   },"Aucune tâche en attente ✨");
   if($("home-fiches-ttl"))$("home-fiches-ttl").textContent=m.navIco1+" "+m.t1;
+  /* 🎓 Synthèse universitaire */
+  const he=$("home-etudes");
+  if(he){
+    if(currentMetier==="etudiant"){
+      const S=etudesSummary();
+      const avgTxt=S.avg==null?"—":S.avg.toFixed(2)+"/20";
+      const avgCol=S.avg==null?"var(--ink4)":(S.avg>=10?"var(--teal2)":"var(--coral)");
+      const exTxt=S.nextExam?S.nextMat+" · "+S.nextExam.toLocaleDateString("fr-FR",{day:"numeric",month:"short"}):"aucun planifié";
+      he.style.display="block";
+      he.innerHTML=`<div class="card" style="display:flex;gap:8px;justify-content:space-between;text-align:center;padding:13px;">
+        <div style="flex:1;"><div style="font-family:var(--fh);font-size:19px;font-weight:800;color:${avgCol};">${avgTxt}</div><div style="font-size:9px;color:var(--ink4);text-transform:uppercase;letter-spacing:.5px;">Moyenne gén.</div></div>
+        <div style="flex:1;border-left:1px solid var(--bg2);border-right:1px solid var(--bg2);"><div style="font-family:var(--fh);font-size:19px;font-weight:800;color:var(--gold);">${S.ects}</div><div style="font-size:9px;color:var(--ink4);text-transform:uppercase;letter-spacing:.5px;">ECTS validés</div></div>
+        <div style="flex:1.4;"><div style="font-family:var(--fh);font-size:12px;font-weight:800;color:var(--ink2);padding-top:4px;">${exTxt}</div><div style="font-size:9px;color:var(--ink4);text-transform:uppercase;letter-spacing:.5px;">Prochain examen</div></div>
+      </div>`;
+    } else he.style.display="none";
+  }
   fill("home-fiches",benefs.slice(-3).reverse(),b=>{
     const d=document.createElement("div");d.className="benef-item-clickable";
     const ini=((b.nom||"?")[0]+(b.prenom||"")[0]||"?").toUpperCase();
@@ -1822,6 +1858,7 @@ function saveBeneficiaire(){
     typePC:$("f-type")?.value||"",referent:$("f-ref")?.value.trim()||"",
     objet:$("f-objet")?.value.trim()||"",objectif:$("f-obj")?.value.trim()||"",notes:$("f-notes")?.value.trim()||"",
     statut:document.querySelector("#tr-statut .tag.active")?.textContent.trim()||"Actif",
+    ects:$("f-ects")?.value||"",examDate:$("f-exam")?.value||"",
     orgId:window._currentUser?.uid||"demo",updatedAt:new Date().toISOString()};
   /* 1. Sauvegarde locale immédiate (Local-First) */
   saveBenefToLS(data);globalBenefs=getBenefsFromLS();renderBeneficiaires(globalBenefs);updateKPIs(globalBenefs);hideBenefForm();
@@ -1900,6 +1937,10 @@ function openDossier(id){
   $("f-genre").value=b.genre||"";$("f-sitfam").value=b.sitFam||"";$("f-sitpro").value=b.sitPro||"";
   $("f-type").value=b.typePC||"";$("f-ref").value=b.referent||"";
   $("f-objet").value=b.objet||"";$("f-obj").value=b.objectif||"";$("f-notes").value=b.notes||"";
+  if($("f-ects"))$("f-ects").value=b.ects||"";
+  if($("f-exam"))$("f-exam").value=b.examDate||"";
+  _currentDossierId=b.id;
+  if(currentMetier==="etudiant")renderGrades();
   $("benef-list-view").style.display="none";$("benef-form-view").style.display="block";
 }
 function showNewBenefForm(){
@@ -1908,10 +1949,87 @@ function showNewBenefForm(){
   const btns=document.querySelectorAll("#tr-statut .tag");
   btns.forEach(b=>b.classList.remove("active","t-teal","t-gold","t-coral","t-lav","t-navy","t-mc"));
   if(btns[0])btns[0].classList.add("active",m.statutCols[0]);
+  _currentDossierId=null;
+  if(currentMetier==="etudiant")renderGrades();
   $("benef-list-view").style.display="none";$("benef-form-view").style.display="block";
 }
 function hideBenefForm(){$("benef-form-view").style.display="none";$("benef-list-view").style.display="block";}
 function filtrerBenefs(inp){const q=inp.value.toLowerCase();document.querySelectorAll(".benef-item-clickable").forEach(el=>{el.style.display=el.innerText.toLowerCase().includes(q)?"flex":"none";});}
+
+/* =========================================================
+   🎓 MODULE UNIVERSITAIRE (profil Étudiant)
+   Notes par matière, moyennes pondérées, ECTS, plan de révisions
+   ========================================================= */
+let _currentDossierId=null;
+function gradesKey(id){return "grades_"+mzScope()+"_"+id;}
+function getGrades(id){return LS.get(gradesKey(id))||[];}
+function matAverage(id){
+  const g=getGrades(id);if(!g.length)return null;
+  const tot=g.reduce((a,x)=>a+x.coef,0);
+  return tot?g.reduce((a,x)=>a+x.note*x.coef,0)/tot:null;
+}
+function renderGrades(){
+  const c=$("grades-list");if(!c)return;c.innerHTML="";
+  const id=_currentDossierId;
+  if(!id){$("grades-avg").textContent="Enregistrez d'abord la fiche pour ajouter des notes";return;}
+  const g=getGrades(id);
+  g.forEach((x,i)=>{
+    const row=document.createElement("div");row.className="sf-row";
+    const col=x.note>=10?"var(--teal2)":"var(--coral)";
+    row.innerHTML=`<span class="sf-lbl" style="width:auto;flex:1;text-transform:none;font-size:12px;color:var(--ink3);">${x.label||"Note"} <span style="color:var(--ink4)">· coef ${x.coef}</span></span><b style="color:${col};font-family:var(--fh);">${x.note}/20</b><button style="background:none;color:var(--ink4);font-size:14px;padding:0 4px;" onclick="delGrade(${i})">×</button>`;
+    c.appendChild(row);
+  });
+  const avg=matAverage(id);
+  $("grades-avg").textContent = avg==null ? "Aucune note" :
+    "Moyenne : "+avg.toFixed(2)+"/20 "+(avg>=10?"✅ validée":"⚠️ sous la barre");
+}
+function addGrade(){
+  if(!_currentDossierId){toast("Enregistrez d'abord la fiche matière","err");return;}
+  const note=parseFloat($("g-note")?.value),coef=parseFloat($("g-coef")?.value)||1;
+  if(isNaN(note)||note<0||note>20){toast("Note entre 0 et 20","err");return;}
+  const g=getGrades(_currentDossierId);
+  g.push({label:$("g-label")?.value.trim()||"Note",note,coef,date:new Date().toISOString()});
+  LS.set(gradesKey(_currentDossierId),g);
+  $("g-note").value="";$("g-label").value="";$("g-coef").value="1";
+  renderGrades();toast("🎓 Note ajoutée !","ok");vibrate([40]);
+}
+function delGrade(i){
+  const g=getGrades(_currentDossierId);g.splice(i,1);
+  LS.set(gradesKey(_currentDossierId),g);renderGrades();
+}
+window.addGrade=addGrade;window.delGrade=delGrade;
+/* Plan de révisions : crée 3 tâches automatiques avant l'examen (J-7, J-3, J-1) */
+function planRevisions(){
+  const exam=$("f-exam")?.value;
+  const mat=$("f-nom")?.value.trim()||"la matière";
+  if(!exam){toast("Renseignez d'abord la date d'examen","err");return;}
+  const ex=new Date(exam+"T09:00:00");
+  const steps=[[7,"Révision générale"],[3,"Exercices & annales"],[1,"Relecture finale"]];
+  let created=0;
+  steps.forEach(([d,lbl])=>{
+    const day=new Date(ex.getTime()-d*864e5);
+    if(day<new Date())return;
+    const t={id:Date.now()+d,title:"📚 "+lbl+" — "+mat+" ("+day.toLocaleDateString("fr-FR",{day:"numeric",month:"short"})+")",prio:d===1?"high":"med",done:false};
+    LS.set("task_"+mzScope()+"_"+t.id,t);created++;
+  });
+  loadTasks();
+  toast(created?("📅 "+created+" séances de révision planifiées dans vos Tâches !"):"Examen trop proche — révisez maintenant ! 💪",created?"ok":"err");
+  vibrate([60]);
+}
+window.planRevisions=planRevisions;
+/* Synthèse pour l'Accueil : moyenne générale pondérée ECTS + total crédits + prochain examen */
+function etudesSummary(){
+  const mats=getBenefsFromLS();
+  let sum=0,wsum=0,ects=0,nextExam=null,nextMat="";
+  mats.forEach(m=>{
+    const avg=matAverage(m.id);
+    const cred=parseFloat(m.ects)||0;
+    if(avg!=null){const w=cred||1;sum+=avg*w;wsum+=w;if(avg>=10&&cred)ects+=cred;}
+    if(m.examDate){const d=new Date(m.examDate+"T00:00:00");
+      if(d>=new Date(new Date().toDateString())&&(!nextExam||d<nextExam)){nextExam=d;nextMat=m.nom;}}
+  });
+  return {avg:wsum?sum/wsum:null,ects,nextExam,nextMat};
+}
 
 /* =========================================================
    TÂCHES
