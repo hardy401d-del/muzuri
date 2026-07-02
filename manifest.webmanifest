@@ -1,0 +1,22 @@
+{
+  "name": "Muzuri — Un outil fait pour vous",
+  "short_name": "Muzuri",
+  "description": "Gestion de suivi polymorphe : social, étudiant, coach, santé, juridique… Vos données restent sur votre appareil.",
+  "lang": "fr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0e1c30",
+  "theme_color": "#0e1c30",
+  "categories": ["productivity", "business", "education"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Scanner un document", "short_name": "Scan", "url": "./index.html?action=scan", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "Nouvelle fiche", "short_name": "Fiche", "url": "./index.html?action=fiche", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] }
+  ]
+}
